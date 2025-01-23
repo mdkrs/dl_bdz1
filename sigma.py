@@ -236,7 +236,7 @@ def train(model, optimizer, n_epochs, train_loader, val_loader, scheduler=None, 
 
         if scheduler is not None:
             scheduler.step(np.mean(train_acc))
-        if test_loader is not None and epoch % 3 == 0:
+        if test_loader is not None and epoch % 3 == 2:
             print("SAVING TEST LABELS")
             save_results(model, test_loader, test_size, filename='labels_test')
 
@@ -269,11 +269,11 @@ def main():
     n_epochs = 60
 
     transform_train = transforms.Compose([
-        transforms.RandomHorizontalFlip(p=0.3),
-        transforms.RandomVerticalFlip(p=0.3),
-        transforms.RandomApply(torch.nn.ModuleList([transforms.GaussianBlur(3)]), p=0.2),
-        transforms.RandomApply(torch.nn.ModuleList([transforms.RandomRotation((-15, 15))]), p=0.2),
-        transforms.RandomApply(torch.nn.ModuleList([transforms.ColorJitter(brightness=[0, 1], contrast=[0, 0.5])]), p=0.2),
+        # transforms.RandomHorizontalFlip(p=0.3),
+        # transforms.RandomVerticalFlip(p=0.3),
+        # transforms.RandomApply(torch.nn.ModuleList([transforms.GaussianBlur(3)]), p=0.2),
+        # transforms.RandomApply(torch.nn.ModuleList([transforms.RandomRotation((-15, 15))]), p=0.2),
+        # transforms.RandomApply(torch.nn.ModuleList([transforms.ColorJitter(brightness=[0, 1], contrast=[0, 0.5])]), p=0.2),
         transforms.ToTensor(),
         transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))]
     )

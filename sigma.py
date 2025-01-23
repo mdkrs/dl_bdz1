@@ -81,6 +81,90 @@ class BasicBlockNet(nn.Module):
 
         return out
 
+
+from copy import copy
+
+class MyGigaNet(nn.Module):
+    def __init__(self, num_classes: int) -> None:
+        super().__init__()
+        self.num_classes = num_classes
+
+        self.block1 = nn.Sequential(
+            nn.Conv2d(3, 32, 3, padding='same', bias=False),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, 3, padding='same', bias=False),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.Conv2d(64, 128, 3, padding='same', bias=False),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.Conv2d(128, 256, 3, padding='same', bias=False),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.Conv2d(256, 512, 3, padding='same', bias=False),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.MaxPool2d(2)
+        )
+        
+        for i in range(len(self.block1)):
+            if isinstance(self.block1[i], nn.Conv2d):
+                 nn.init.kaiming_normal_(self.block1[i].weight, mode='fan_out', nonlinearity='relu')
+
+        self.block2 = nn.Sequential(
+            nn.Conv2d(512, 64, 3, padding='same', bias=False),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.Conv2d(64, 128, 3, padding='same', bias=False),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.Conv2d(128, 256, 3, padding='same', bias=False),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.Conv2d(256, 512, 3, padding='same', bias=False),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.Conv2d(512, 1024, 3, padding='same', bias=False),
+            nn.BatchNorm2d(1024),
+            nn.ReLU(),
+            nn.MaxPool2d(2)
+        )
+        
+        for i in range(len(self.block2)):
+            if isinstance(self.block2[i], nn.Conv2d):
+                 nn.init.kaiming_normal_(self.block2[i].weight, mode='fan_out', nonlinearity='relu')
+
+        self.end = nn.Sequential(
+            nn.Conv2d(3072, self.num_classes, 1, bias=False),
+            nn.BatchNorm2d(self.num_classes),
+            nn.AdaptiveAvgPool2d(1),
+        )
+        
+        nn.init.kaiming_normal_(self.end[0].weight, mode='fan_out', nonlinearity='relu')
+
+    def space_to_depth(self, x, block_size=2):
+        n, c, h, w = x.size()
+        unfolded_x = torch.nn.functional.unfold(x, block_size, stride=block_size)
+        return unfolded_x.view(n, c * block_size ** 2, h // block_size, w // block_size)
+
+
+
+    def forward(self, x):
+        x = self.block1(x)
+        skip_1 = x
+
+        x = self.block2(x)
+
+        skip_1 = self.space_to_depth(skip_1)
+        x = torch.cat((x, skip_1), dim=1)
+
+        x = self.end(x)
+        x = x.view(x.size(0), -1)
+
+        return x
+
+
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 def test(model, loader):
@@ -105,6 +189,7 @@ def test(model, loader):
         acc_log.append(acc.item())
 
     return np.mean(loss_log), np.mean(acc_log)
+
 
 def train_epoch(model, optimizer, train_loader):
     loss_log = []
@@ -197,7 +282,7 @@ def main():
         transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))]
     )
 
-    net = resnet50()
+    net = MyGigaNet(n_classes)
     net = net.to(device)
 
     lr_warmup_epochs = 5

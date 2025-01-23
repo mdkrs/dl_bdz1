@@ -265,7 +265,7 @@ def main():
     train_size = 100000
     test_size = 10000
     val_size = 5000
-    batch_size = 4096
+    batch_size = 1024
     n_epochs = 60
 
     transform_train = transforms.Compose([

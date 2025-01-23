@@ -235,7 +235,7 @@ def train(model, optimizer, n_epochs, train_loader, val_loader, scheduler=None, 
         print(f" val loss: {val_loss}, val acc: {val_acc}\n")
 
         if scheduler is not None:
-            scheduler.step()
+            scheduler.step(np.mean(train_acc))
         if test_loader is not None and epoch % 3 == 0:
             print("SAVING TEST LABELS")
             save_results(model, test_loader, test_size, filename='labels_test')
@@ -285,13 +285,16 @@ def main():
     net = MyGigaNet(n_classes)
     net = net.to(device)
 
-    lr_warmup_epochs = 5
-    lr_warmup_decay = 0.01
-    optimizer = optim.SGD(net.parameters(), lr=0.3, momentum=0.9, nesterov=True)
-    warmpup_scheduler = optim.lr_scheduler.LinearLR(optimizer, start_factor=lr_warmup_decay, total_iters=lr_warmup_epochs)
-    main_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=n_epochs-lr_warmup_epochs, eta_min=0)
+    # lr_warmup_epochs = 5
+    # lr_warmup_decay = 0.01
+    # optimizer = optim.SGD(net.parameters(), lr=0.3, momentum=0.9, nesterov=True)
+    # warmpup_scheduler = optim.lr_scheduler.LinearLR(optimizer, start_factor=lr_warmup_decay, total_iters=lr_warmup_epochs)
+    # main_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=n_epochs-lr_warmup_epochs, eta_min=0)
 
-    scheduler = optim.lr_scheduler.SequentialLR(optimizer, schedulers=[warmpup_scheduler, main_scheduler], milestones=[lr_warmup_epochs], verbose=True)
+    # scheduler = optim.lr_scheduler.SequentialLR(optimizer, schedulers=[warmpup_scheduler, main_scheduler], milestones=[lr_warmup_epochs], verbose=True)
+
+    optimizer = optim.Adam(net.parameters())
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=np.sqrt(0.1), cooldown=0, patience=5, min_lr=0.5e-6)
 
     train_loader, val_loader, test_loader = my_train_val_test_split(train_size, val_size, test_size, transform_train, transform_test, batch_size, labels)
     train_loss_log, train_acc_log, val_loss_log, val_acc_log = train(net, optimizer, 100, train_loader, val_loader, scheduler, test_loader, test_size)

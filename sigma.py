@@ -5,7 +5,6 @@ import numpy as np
 import torch.optim as optim
 import torchvision
 import torch.nn.functional as F
-from IPython.display import clear_output
 import torchvision.transforms as transforms
 import pandas as pd
 from PIL import Image

@@ -177,7 +177,7 @@ def main():
     train_size = 100000
     test_size = 10000
     val_size = 5000
-    batch_size = 8192
+    batch_size = 8192 * 4
     n_epochs = 60
 
     transform_train = transforms.Compose([
@@ -194,7 +194,7 @@ def main():
         transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))]
     )
 
-    net = resnet34()
+    net = resnet50()
     net = net.to(device)
 
     optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9, nesterov=True)

@@ -11,7 +11,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from torchvision.models import resnet50
+from torchvision.models import resnet50, resnet34
 
 
 class DLDataset(Dataset):
@@ -177,7 +177,7 @@ def main():
     train_size = 100000
     test_size = 10000
     val_size = 5000
-    batch_size = 128
+    batch_size = 1024
     n_epochs = 60
 
     transform_train = transforms.Compose([
@@ -194,7 +194,7 @@ def main():
         transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))]
     )
 
-    net = resnet50()
+    net = resnet34()
     net = net.to(device)
 
     optimizer = optim.SGD(net.parameters(), lr=0.1, momentum=0.9, nesterov=True)

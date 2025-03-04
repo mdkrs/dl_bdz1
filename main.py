@@ -460,7 +460,7 @@ def read_config():
             'step': 1
         },
         'outputfile': 'output',
-        'path': '.',
+        'path': '../',
         'run_name': 'main',
         'min_freq': 10
     }

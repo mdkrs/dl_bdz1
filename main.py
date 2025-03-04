@@ -15,6 +15,20 @@ import math, copy, time
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
+PAD_TOKEN = '<pad>'
+UNK_TOKEN = '<unk>'
+BOS_TOKEN = '<bos>'
+EOS_TOKEN = '<eos>'
+SPECIAL_TOKENS = [PAD_TOKEN, UNK_TOKEN, BOS_TOKEN, EOS_TOKEN]
+MAX_SEQUENCE_LENGTH = 83
+
+
+
+def subsequent_mask(size: int):
+    attn_shape = (1, size, size)
+    subsequent_mask = np.triu(np.ones(attn_shape), k=1).astype('uint8')
+    return torch.from_numpy(subsequent_mask) == 0
+
 
 def dataset_iterator(path):
     with open(path) as texts:
@@ -25,56 +39,54 @@ def dataset_iterator(path):
 def build_vocab(path, min_freq):
     return build_vocab_from_iterator(
         dataset_iterator(path),
-        specials=['<pad>', '<unk>', '<bos>', '<eos>'], min_freq=min_freq,
+        specials=SPECIAL_TOKENS, min_freq=min_freq,
     )
 
 
-def get_train_val_dataloaders(path: str, en_vocab, de_vocab, batch_size: int = 216) -> list[DataLoader]:
-    # en_vocab['<bos>'] == 2
-    # en_vocab['<eos>'] == 3
+def get_train_val_dataloaders(path, en_vocab, de_vocab, batch_size) -> list[DataLoader]:
     train_en_tokens = []
     for text in dataset_iterator(f'{path}/data/train.de-en.en'):
-        tokens = [2] + [en_vocab[word] if word in en_vocab else en_vocab['<unk>'] for word in text] + [3]
+        tokens = [2] + [en_vocab[word] if word in en_vocab else en_vocab[UNK_TOKEN] for word in text] + [3]
         train_en_tokens += [tokens]
 
     train_de_tokens = []
     for text in dataset_iterator(f'{path}/data/train.de-en.de'):
-        tokens = [2] + [de_vocab[word] if word in de_vocab else de_vocab['<unk>'] for word in text] + [3]
+        tokens = [2] + [de_vocab[word] if word in de_vocab else de_vocab[UNK_TOKEN] for word in text] + [3]
         train_de_tokens += [tokens]
 
     test_en_tokens = []
     for text in dataset_iterator(f'{path}/data/val.de-en.en'):
-        tokens = [2] + [en_vocab[word] if word in en_vocab else en_vocab['<unk>'] for word in text] + [3]
+        tokens = [2] + [en_vocab[word] if word in en_vocab else en_vocab[UNK_TOKEN] for word in text] + [3]
         test_en_tokens += [tokens]
 
     test_de_tokens = []
     for text in dataset_iterator(f'{path}/data/val.de-en.de'):
-        tokens = [2] + [de_vocab[word] if word in de_vocab else de_vocab['<unk>'] for word in text] + [3]
+        tokens = [2] + [de_vocab[word] if word in de_vocab else de_vocab[UNK_TOKEN] for word in text] + [3]
         test_de_tokens += [tokens]
 
 
-    max_length = 82
-    tokenized_en_train = torch.full((len(train_en_tokens), max_length), en_vocab['<pad>'], dtype=torch.int32)
+    max_length = MAX_SEQUENCE_LENGTH
+    tokenized_en_train = torch.full((len(train_en_tokens), max_length), en_vocab[PAD_TOKEN], dtype=torch.int32)
     for i, tokens in enumerate(train_en_tokens):
         length = min(max_length, len(tokens))
         tokenized_en_train[i, :length] = torch.tensor(tokens[:length])
 
-    tokenized_de_train = torch.full((len(train_de_tokens), max_length), de_vocab['<pad>'], dtype=torch.int32)
+    tokenized_de_train = torch.full((len(train_de_tokens), max_length), de_vocab[PAD_TOKEN], dtype=torch.int32)
     for i, tokens in enumerate(train_de_tokens):
         length = min(max_length, len(tokens))
         tokenized_de_train[i, :length] = torch.tensor(tokens[:length])
 
-    tokenized_en_test = torch.full((len(test_en_tokens), max_length), en_vocab['<pad>'], dtype=torch.int32)
+    tokenized_en_test = torch.full((len(test_en_tokens), max_length), en_vocab[PAD_TOKEN], dtype=torch.int32)
     for i, tokens in enumerate(test_en_tokens):
         length = min(max_length, len(tokens))
         tokenized_en_test[i, :length] = torch.tensor(tokens[:length])
 
-    tokenized_de_test = torch.full((len(test_de_tokens), max_length), de_vocab['<pad>'], dtype=torch.int32)
+    tokenized_de_test = torch.full((len(test_de_tokens), max_length), de_vocab[PAD_TOKEN], dtype=torch.int32)
     for i, tokens in enumerate(test_de_tokens):
         length = min(max_length, len(tokens))
         tokenized_de_test[i, :length] = torch.tensor(tokens[:length])
 
-    train_dataset = TensorDataset(tokenized_de_train, tokenized_en_train) # for sync shuffle
+    train_dataset = TensorDataset(tokenized_de_train, tokenized_en_train)
     test_dataset = TensorDataset(tokenized_de_test, tokenized_en_test)
 
     train_loader = DataLoader(train_dataset, batch_size, shuffle=True)
@@ -85,6 +97,17 @@ def get_train_val_dataloaders(path: str, en_vocab, de_vocab, batch_size: int = 2
 
 def clones(module: nn.Module, N: int) -> nn.ModuleList:
     return nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
+
+
+def Attention(query, key, value, mask=None, dropout=None):
+    d_k = query.size(-1)
+    scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
+    if mask is not None:
+        scores = scores.masked_fill(mask == 0, -1e9)
+    p_attn = F.softmax(scores, dim = -1)
+    if dropout is not None:
+        p_attn = dropout(p_attn)
+    return torch.matmul(p_attn, value)
 
 
 class LayerNorm(nn.Module):
@@ -108,12 +131,6 @@ class SublayerConnection(nn.Module):
 
     def forward(self, x, sublayer):
         return x + self.dropout(sublayer(self.norm(x)))
-    
-
-def subsequent_mask(size: int):
-    attn_shape = (1, size, size)
-    subsequent_mask = np.triu(np.ones(attn_shape), k=1).astype('uint8')
-    return torch.from_numpy(subsequent_mask) == 0
 
 
 class Batch:
@@ -123,8 +140,7 @@ class Batch:
         if trg is not None:
             self.trg = trg[:, :-1]
             self.trg_y = trg[:, 1:]
-            self.trg_mask = \
-                self.make_std_mask(self.trg, pad)
+            self.trg_mask = self.make_std_mask(self.trg, pad)
             self.ntokens = (self.trg_y != pad).data.sum()
     
     def make_std_mask(self, tgt, pad):
@@ -172,17 +188,6 @@ class PositionalEncoding(nn.Module):
         x = x + Variable(self.pe[:, :x.size(1)], 
                          requires_grad=False)
         return self.dropout(x)
-    
-
-def Attention(query, key, value, mask=None, dropout=None):
-    d_k = query.size(-1)
-    scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
-    if mask is not None:
-        scores = scores.masked_fill(mask == 0, -1e9)
-    p_attn = F.softmax(scores, dim = -1)
-    if dropout is not None:
-        p_attn = dropout(p_attn)
-    return torch.matmul(p_attn, value)
 
 
 class MultiHeadedAttention(nn.Module):
@@ -199,14 +204,9 @@ class MultiHeadedAttention(nn.Module):
             mask = mask.unsqueeze(1)
         batch_size = query.size(0)
         
-        query, key, value = \
-            [l(x).view(batch_size, -1, self.h, self.d_k).transpose(1, 2)
-             for l, x in zip(self.linears, (query, key, value))]
-        
-        x = Attention(query, key, value, mask=mask, 
-                                 dropout=self.dropout)
-        x = x.transpose(1, 2).contiguous() \
-             .view(batch_size, -1, self.h * self.d_k)
+        query, key, value = [l(x).view(batch_size, -1, self.h, self.d_k).transpose(1, 2) for l, x in zip(self.linears, (query, key, value))]
+        x = Attention(query, key, value, mask=mask, dropout=self.dropout)
+        x = x.transpose(1, 2).contiguous().view(batch_size, -1, self.h * self.d_k)
         return self.linears[-1](x)
     
 
@@ -292,8 +292,8 @@ class Generator(nn.Module):
         return self.linear(x)
     
 
-def make_transformer(src_vocab, tgt_vocab, N=6, 
-               d_model=512, d_ff=2048, h=8, dropout=0.1):
+def make_transformer(src_vocab, tgt_vocab, N, 
+               d_model, d_ff, h, dropout=0.1):
     c = copy.deepcopy
     attn = MultiHeadedAttention(h, d_model)
     ff = PositionwiseFeedForward(d_model, d_ff, dropout)
@@ -332,9 +332,7 @@ class WarmupOptimizer:
     def rate(self, step = None):
         if step is None:
             step = self._step
-        return self.factor * \
-            (self.model_size ** (-0.5) *
-            min(step ** (-0.5), step * self.warmup ** (-1.5)))
+        return self.factor * (self.model_size ** (-0.5) * min(step ** (-0.5), step * self.warmup ** (-1.5)))
     
 
 class LossBLEUCompute:
@@ -390,9 +388,9 @@ def run_epoch(data_loader, model, loss_bleu_compute):
         total_bleu += bleu
         total_tokens += batch.ntokens
         tokens += batch.ntokens
-        if i % 200 == 1:
+        if i % 100 == 1:
             elapsed = time.time() - start
-            print("Epoch Step: %d Loss: %f Tokens per Sec: %f" % (i, loss / batch.ntokens, tokens / elapsed))
+            print("Step: %d Loss: %f Tokens per Sec: %f" % (i, loss / batch.ntokens, tokens / elapsed))
             start = time.time()
             tokens = 0
     return total_loss / total_tokens, total_bleu / total_tokens
@@ -410,8 +408,8 @@ def train_loop(num_epochs, model, train_loader, test_loader, train_loss_comp, te
         loss, bleu = run_epoch(test_loader, model, test_loss_comp)
         val_loss.append(loss)
         val_bleu.append(bleu)
-        print(f'Train loss after {epoch}th epoch: {train_loss[-1]}')
-        print(f'Val loss after {epoch}th epoch: {val_loss[-1]}')
+        print(f'train loss after {epoch}th epoch: {train_loss[-1]}')
+        print(f'val loss after {epoch}th epoch: {val_loss[-1]}')
 
 
 def inference_loop(model, tokenized_src, en_vocab, max_length=90):
@@ -436,8 +434,8 @@ def inference_loop(model, tokenized_src, en_vocab, max_length=90):
     return translated_sentence
 
 
-def read_config():
-    return {
+def main():
+    config = {
         'model': {
             'num_layers': 2,
             'embedding_dim': 128,
@@ -463,20 +461,13 @@ def read_config():
         'run_name': 'main',
         'min_freq': 10
     }
-    
 
-def main():
-    config = read_config()
+
     path = config['path']
 
     en_vocab = build_vocab(f'{path}/data/train.de-en.en', config['min_freq'])
     de_vocab = build_vocab(f'{path}/data/train.de-en.de', config['min_freq'])
-    print(len(en_vocab), len(de_vocab))
-    train_loader, val_loader = \
-        get_train_val_dataloaders(path=path, en_vocab=en_vocab,
-                                    de_vocab=de_vocab, batch_size=config['batch_size'])
-
-
+    train_loader, val_loader = get_train_val_dataloaders(path=path, en_vocab=en_vocab, de_vocab=de_vocab, batch_size=config['batch_size'])
     criterion = nn.CrossEntropyLoss(ignore_index=0)
     model = make_transformer(len(de_vocab), len(en_vocab),
                             N=config['model']['num_layers'],
@@ -487,18 +478,13 @@ def main():
                                 config['optimizer']['warmup'],
                                 torch.optim.Adam(model.parameters(), lr=config['optimizer']['lr'], 
                                                 betas=(config['optimizer']['beta1'], 
-                                                        config['optimizer']['beta2']), 
-                                                eps=1e-09))
-    num_epochs=config['epochs']
+                                                config['optimizer']['beta2']), eps=1e-09))
+    
+    train_loop(num_epochs=config['epochs'], model=model, train_loader=train_loader,
+               test_loader=val_loader,
+               train_loss_comp=LossBLEUCompute(model.generator, criterion, en_vocab.get_itos(), calc_bleu=False, opt=optimizer),
+               test_loss_comp=LossBLEUCompute(model.generator, criterion, en_vocab.get_itos(), calc_bleu=False, opt=None), config=config)
 
-
-    train_loop(num_epochs=num_epochs, model=model, train_loader=train_loader,
-                                test_loader=val_loader,
-                                train_loss_comp=LossBLEUCompute(model.generator, criterion, en_vocab.get_itos(), calc_bleu=False, opt=optimizer),
-                                test_loss_comp=LossBLEUCompute(model.generator, criterion, en_vocab.get_itos(), calc_bleu=False, opt=None), config=config)
-
-
-    # not optimized, but working one loop for each sequence
     with open(config['outputfile'], 'w') as ans_file:
         for text in dataset_iterator(f'{path}/data/test1.de-en.de'):
             tokens = [2] + [de_vocab[word] if word in de_vocab else de_vocab['<unk>'] for word in text] + [3]

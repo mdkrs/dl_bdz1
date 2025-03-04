@@ -440,10 +440,10 @@ def inference_loop(model, tokenized_src, en_vocab, max_length=90):
 def read_config():
     return {
         'model': {
-            'num_layers': 1,
-            'embedding_dim': 2,
-            'feedforward_dim': 4,
-            'num_heads': 2,
+            'num_layers': 3,
+            'embedding_dim': 128,
+            'feedforward_dim': 512,
+            'num_heads': 4,
             'dropout': 0.1
         },
         'batch_size': 64,
@@ -454,7 +454,7 @@ def read_config():
             'beta1': 0.9,
             'beta2': 0.98
         },
-        'epochs': 2,
+        'epochs': 5,
         'checkpoint': {
             'dir': 'checkpoints',
             'step': 1

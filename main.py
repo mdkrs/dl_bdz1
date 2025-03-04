@@ -426,7 +426,6 @@ def inference_loop(model, tokenized_src, en_vocab, max_length=90):
         with torch.no_grad():
             output = model.forward(src, trg, None, None)
         prob_distribution = model.generator(output[:, -1])
-        print(f'prob_dist shape = {prob_distribution.shape}')
         next_token = torch.argmax(prob_distribution, dim=1).item()
         if next_token == en_vocab["<eos>"]:
             break

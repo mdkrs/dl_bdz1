@@ -445,7 +445,7 @@ def read_config():
             'num_heads': 4,
             'dropout': 0.1
         },
-        'batch_size': 256,
+        'batch_size': 1024,
         'optimizer': {
             'factor': 1,
             'warmup': 400,

@@ -439,13 +439,13 @@ def inference_loop(model, tokenized_src, en_vocab, max_length=90):
 def read_config():
     return {
         'model': {
-            'num_layers': 3,
+            'num_layers': 2,
             'embedding_dim': 128,
-            'feedforward_dim': 512,
+            'feedforward_dim': 256,
             'num_heads': 4,
             'dropout': 0.1
         },
-        'batch_size': 64,
+        'batch_size': 256,
         'optimizer': {
             'factor': 1,
             'warmup': 400,

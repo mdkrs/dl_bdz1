@@ -456,7 +456,7 @@ def beam_search(model, tokenized_src, en_vocab, max_length=90, beam_width=3):
 
     ans_beams.sort(key=lambda x: x[1])
     best_beam_tokens, _ = ans_beams[0]
-    return best_beam_tokens[1:-1]  # Удаляем <bos> и <eos>
+    return best_beam_tokens[1:-1]
 
 
 def inference_loop_beam_search(model, tokenized_src, en_vocab, max_length=90, beam_width=5):

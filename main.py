@@ -514,7 +514,7 @@ def main():
         'model': {
             'num_layers': 3,
             'embedding_dim': 128,
-            'feedforward_dim': 128,
+            'feedforward_dim': 256,
             'num_heads': 4,
             'dropout': 0.1
         },
@@ -526,7 +526,7 @@ def main():
             'beta1': 0.9,
             'beta2': 0.98
         },
-        'epochs': 1,
+        'epochs': 5,
         'checkpoint': {
             'dir': 'checkpoints',
             'step': 1

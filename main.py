@@ -429,7 +429,7 @@ def beam_search(model, tokenized_src, en_vocab, max_length=90, beam_width=3):
 
     ans_beams = []
     
-    for curr_l in tqdm(range(max_length)):
+    for curr_l in range(max_length):
         new_beams = []
         for beam_tokens, beam_score in beams:
 

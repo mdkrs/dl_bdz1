@@ -512,7 +512,7 @@ def create_next_file_with_data(directory, data):
 def main():
     config = {
         'model': {
-            'num_layers': 3,
+            'num_layers': 2,
             'embedding_dim': 128,
             'feedforward_dim': 256,
             'num_heads': 4,
@@ -526,7 +526,7 @@ def main():
             'beta1': 0.9,
             'beta2': 0.98
         },
-        'epochs': 5,
+        'epochs': 10,
         'checkpoint': {
             'dir': 'checkpoints',
             'step': 1

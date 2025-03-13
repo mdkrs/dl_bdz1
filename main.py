@@ -511,11 +511,18 @@ def main():
                train_loss_comp=LossBLEUCompute(model.generator, criterion, en_vocab.get_itos(), calc_bleu=False, opt=optimizer),
                test_loss_comp=LossBLEUCompute(model.generator, criterion, en_vocab.get_itos(), calc_bleu=False, opt=None), config=config)
     
+    print(type(config))
+    print(type(train_loss))
+    print(type(val_loss))
+    print(type(train_bleu))
+    print(type(val_bleu))
     create_next_file_with_data(config['logdir'], json.dumps(
         dict(
             config=config,
             train_loss=train_loss,
             val_loss=val_loss,
+            train_bleu=train_bleu,
+            val_bleu=val_bleu,
         )
     ))
 

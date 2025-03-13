@@ -404,7 +404,7 @@ def train_loop(num_epochs, model, train_loader, test_loader, train_loss_comp, te
     for epoch in range(num_epochs):
         model.train()
         loss, bleu = run_epoch(train_loader, model, train_loss_comp)
-        train_loss.append(loss)
+        train_loss.append(loss.cpu().numpy().tolist()[0])
         train_bleu.append(bleu)
         model.eval()
         loss, bleu = run_epoch(test_loader, model, test_loss_comp)
@@ -569,7 +569,7 @@ def main():
     print(type(val_bleu))
     print("train_loss")
     for x in train_loss:
-        print(type(x), x)
+        print(type(x), x.)
     print("train_bleu")
     for x in train_bleu:
         print(type(x), x)

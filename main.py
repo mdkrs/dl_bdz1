@@ -470,6 +470,8 @@ def inference_loop(model, tokenized_src, en_vocab, max_length=90):
     en_reverse_vocab = en_vocab.get_itos()
 
     model.eval()
+    print(device, next(model.parameters()).device)
+
     trg_tokens = [en_vocab["<bos>"]]
     
     for _ in range(max_length):

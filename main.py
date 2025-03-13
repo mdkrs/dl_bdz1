@@ -464,7 +464,7 @@ def main():
             'num_layers': 3,
             'embedding_dim': 128,
             'feedforward_dim': 128,
-            'num_heads': 3,
+            'num_heads': 4,
             'dropout': 0.1
         },
         'batch_size': 1024,

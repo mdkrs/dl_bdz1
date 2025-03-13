@@ -417,12 +417,11 @@ def train_loop(num_epochs, model, train_loader, test_loader, train_loss_comp, te
 
 
 @torch.no_grad()
-def beam_search(model, tokenized_src, en_vocab, max_length=90, beam_width=3):
+def beam_search(model, tokenized_src, en_vocab, max_length=90, beam_width=5):
     assert beam_width > 0
 
     model.eval()
     src = torch.tensor([tokenized_src]).to(device)
-    print(device, next(model.parameters()).device)
     memory = model.encode(src, None)
     trg_tokens = [en_vocab["<bos>"]]
     beams = [(trg_tokens, 0)]  # Список кортежей (токены, счет)

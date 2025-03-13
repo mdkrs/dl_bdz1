@@ -470,7 +470,6 @@ def inference_loop(model, tokenized_src, en_vocab, max_length=90):
     en_reverse_vocab = en_vocab.get_itos()
 
     model.eval()
-    print(device, next(model.parameters()).device)
 
     trg_tokens = [en_vocab["<bos>"]]
     
@@ -574,7 +573,8 @@ def main():
     ))
 
     with open(config['outputfile'], 'w') as ans_file:
-        for text in dataset_iterator(f'{path}/data/test1.de-en.de'):
+        lenn = len(list(dataset_iterator(f'{path}/data/test1.de-en.de')))
+        for text in tqdm(dataset_iterator(f'{path}/data/test1.de-en.de'), total=lenn):
             tokens = [2] + [de_vocab[word] if word in de_vocab else de_vocab['<unk>'] for word in text] + [3]
             ans_file.write(' '.join(inference_loop(model=model, tokenized_src=tokens, en_vocab=en_vocab)) + '\n')
     print("FINISHED")

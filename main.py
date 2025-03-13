@@ -6,6 +6,8 @@ from torch.autograd import Variable
 from torch.utils.data import TensorDataset, DataLoader
 
 import sacrebleu
+import json
+import os
 
 import numpy as np
 from tqdm import tqdm
@@ -410,6 +412,8 @@ def train_loop(num_epochs, model, train_loader, test_loader, train_loss_comp, te
         val_bleu.append(bleu)
         print(f'train loss after {epoch}th epoch: {train_loss[-1]}')
         print(f'val loss after {epoch}th epoch: {val_loss[-1]}')
+    
+    return train_loss, val_loss, train_bleu, val_bleu
 
 
 def inference_loop(model, tokenized_src, en_vocab, max_length=90):
@@ -434,12 +438,33 @@ def inference_loop(model, tokenized_src, en_vocab, max_length=90):
     return translated_sentence
 
 
+def create_next_file_with_data(directory, data):
+    files = os.listdir(directory)
+    
+    max_number = -1
+    for file_name in files:
+        try:
+            number = int(file_name)
+            if number > max_number:
+                max_number = number
+        except ValueError:
+            continue
+    
+    next_number = max_number + 1
+    new_file_name = str(next_number)
+    new_file_path = os.path.join(directory, new_file_name)
+    
+    # Создаём новый файл и записываем в него данные
+    with open(new_file_path, 'w') as new_file:
+        new_file.write(data)
+    print(f"Logged in: {os.path.joi(directory, new_file_name)}")
+
 def main():
     config = {
         'model': {
-            'num_layers': 2,
+            'num_layers': 3,
             'embedding_dim': 128,
-            'feedforward_dim': 256,
+            'feedforward_dim': 512,
             'num_heads': 4,
             'dropout': 0.1
         },
@@ -451,17 +476,19 @@ def main():
             'beta1': 0.9,
             'beta2': 0.98
         },
-        'epochs': 5,
+        'epochs': 8,
         'checkpoint': {
             'dir': 'checkpoints',
             'step': 1
         },
         'outputfile': 'output',
+        'logdir': 'logs/',
         'path': '../',
         'run_name': 'main',
         'min_freq': 10
     }
-
+    print("RUNNING ON CONFIG")
+    print(json.dumps(config))
 
     path = config['path']
 
@@ -480,10 +507,20 @@ def main():
                                                 betas=(config['optimizer']['beta1'], 
                                                 config['optimizer']['beta2']), eps=1e-09))
     
-    train_loop(num_epochs=config['epochs'], model=model, train_loader=train_loader,
+    train_loss, val_loss, train_bleu, val_bleu = train_loop(num_epochs=config['epochs'], model=model, train_loader=train_loader,
                test_loader=val_loader,
                train_loss_comp=LossBLEUCompute(model.generator, criterion, en_vocab.get_itos(), calc_bleu=False, opt=optimizer),
                test_loss_comp=LossBLEUCompute(model.generator, criterion, en_vocab.get_itos(), calc_bleu=False, opt=None), config=config)
+    
+    create_next_file_with_data(config['logdir'], json.dumps(
+        dict(
+            config=config,
+            train_loss=train_loss,
+            val_loss=val_loss,
+            train_bleu=train_bleu,
+            val_bleu=val_bleu
+        )
+    ))
 
     with open(config['outputfile'], 'w') as ans_file:
         for text in dataset_iterator(f'{path}/data/test1.de-en.de'):

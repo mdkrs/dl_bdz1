@@ -424,7 +424,7 @@ def beam_search(model, tokenized_src, en_vocab, max_length=90, beam_width=5):
     src = torch.tensor([tokenized_src]).to(device)
     memory = model.encode(src, None)
     trg_tokens = [en_vocab["<bos>"]]
-    beams = [(trg_tokens, 0)]  # Список кортежей (токены, счет)
+    beams = [(trg_tokens, 0)]
 
     ans_beams = []
     
@@ -444,7 +444,7 @@ def beam_search(model, tokenized_src, en_vocab, max_length=90, beam_width=5):
             top_scores, top_prob_tokens = torch.topk(prob_distribution, beam_width)
 
             for score, tokens in zip(top_scores.squeeze(), top_prob_tokens.squeeze()):
-                new_score = beam_score - torch.log(score).item()  # Учет вероятности
+                new_score = beam_score - torch.log(score).item()
                 new_beam = (beam_tokens + [tokens.item()], new_score)
                 new_beams.append(new_beam)
         if len(ans_beams) >= beam_width:
@@ -511,8 +511,8 @@ def create_next_file_with_data(directory, data):
 def main():
     config = {
         'model': {
-            'num_layers': 2,
-            'embedding_dim': 128,
+            'num_layers': 3,
+            'embedding_dim': 256,
             'feedforward_dim': 256,
             'num_heads': 4,
             'dropout': 0.1
@@ -525,7 +525,7 @@ def main():
             'beta1': 0.9,
             'beta2': 0.98
         },
-        'epochs': 1,
+        'epochs': 20,
         'checkpoint': {
             'dir': 'checkpoints',
             'step': 1
@@ -575,7 +575,7 @@ def main():
         lenn = len(list(dataset_iterator(f'{path}/data/test1.de-en.de')))
         for text in tqdm(dataset_iterator(f'{path}/data/test1.de-en.de'), total=lenn):
             tokens = [2] + [de_vocab[word] if word in de_vocab else de_vocab['<unk>'] for word in text] + [3]
-            ans_file.write(' '.join(inference_loop_beam_search(model=model, tokenized_src=tokens, en_vocab=en_vocab)) + '\n')
+            ans_file.write(' '.join(inference_loop(model=model, tokenized_src=tokens, en_vocab=en_vocab)) + '\n')
     print("FINISHED")
 
 

@@ -416,7 +416,6 @@ def train_loop(num_epochs, model, train_loader, test_loader, train_loss_comp, te
     return train_loss, val_loss, train_bleu, val_bleu
 
 
-@torch.no_grad()
 def beam_search(model, tokenized_src, en_vocab, max_length=90, beam_width=3):
     assert beam_width > 0
 
@@ -424,39 +423,75 @@ def beam_search(model, tokenized_src, en_vocab, max_length=90, beam_width=3):
     src = torch.tensor([tokenized_src]).to(device)
     memory = model.encode(src, None)
     trg_tokens = [en_vocab["<bos>"]]
+    # Начинаем с нулевого счета (логарифм вероятности 1)
     beams = [(trg_tokens, 0)]
-
-    ans_beams = []
+    
+    completed_beams = []
     
     for curr_l in range(max_length):
         new_beams = []
+        
+        # Если все лучи завершены, прекращаем поиск
+        if not beams:
+            break
+            
         for beam_tokens, beam_score in beams:
-
+            # Если текущий луч уже завершен, добавляем его в завершенные
             if beam_tokens[-1] == en_vocab["<eos>"]:
-                ans_beams.append((beam_tokens, beam_score * float(curr_l) ** (-0.75)))
+                completed_beams.append((beam_tokens, beam_score))
                 continue
+                
             trg = torch.tensor([beam_tokens]).to(device)
 
             with torch.no_grad():
                 output = model.decode(memory, None, trg, None)
                 
-            prob_distribution = model.generator(output[:, -1])
+            prob_distribution = torch.softmax(model.generator(output[:, -1]), dim=-1)
             top_scores, top_prob_tokens = torch.topk(prob_distribution, beam_width)
 
-            for score, tokens in zip(top_scores.squeeze(), top_prob_tokens.squeeze()):
+            for score, token_idx in zip(top_scores.squeeze(), top_prob_tokens.squeeze()):
+                # Используем логарифм для предотвращения underflow
                 new_score = beam_score - torch.log(score).item()
-                new_beam = (beam_tokens + [tokens.item()], new_score)
+                new_beam = (beam_tokens + [token_idx.item()], new_score)
                 new_beams.append(new_beam)
-        if len(ans_beams) >= beam_width:
-            break
-
+                
+        # Сортируем новые лучи по возрастанию счета (меньше = лучше)
         new_beams.sort(key=lambda x: x[1])
-
+        
+        # Берем только лучшие beam_width лучей
         beams = new_beams[:beam_width]
-
-    ans_beams.sort(key=lambda x: x[1])
-    best_beam_tokens, _ = ans_beams[0]
-    return best_beam_tokens[1:-1]
+        
+        # Проверяем лучи на достижение EOS и добавляем их в завершенные
+        beams_to_keep = []
+        for beam_tokens, beam_score in beams:
+            if beam_tokens[-1] == en_vocab["<eos>"]:
+                completed_beams.append((beam_tokens, beam_score))
+            else:
+                beams_to_keep.append((beam_tokens, beam_score))
+                
+        beams = beams_to_keep
+    
+    # Добавляем незавершенные лучи, если таковые остались
+    for beam_tokens, beam_score in beams:
+        if beam_tokens[-1] != en_vocab["<eos>"]:
+            # Добавляем EOS к незавершенным лучам
+            completed_beams.append((beam_tokens + [en_vocab["<eos>"]], beam_score))
+    
+    # Нормализуем счет по длине для справедливого сравнения
+    def length_norm(tokens, score):
+        # Используем альфа=0.75 для нормализации по длине
+        return score / ((len(tokens) - 1) ** 0.75)
+    
+    if completed_beams:
+        completed_beams.sort(key=lambda x: length_norm(x[0], x[1]))
+        best_beam_tokens, _ = completed_beams[0]
+    else:
+        # Если нет завершенных лучей, возвращаем лучший из имеющихся
+        beams.sort(key=lambda x: length_norm(x[0], x[1]))
+        best_beam_tokens = beams[0][0]
+    
+    # Удаляем BOS и EOS токены из результата
+    return best_beam_tokens[1:-1] if best_beam_tokens[-1] == en_vocab["<eos>"] else best_beam_tokens[1:]
 
 
 def inference_loop_beam_search(model, tokenized_src, en_vocab, max_length=90, beam_width=5):
@@ -526,7 +561,7 @@ def main():
             'beta1': 0.9,
             'beta2': 0.98
         },
-        'epochs': 10,
+        'epochs': 1,
         'checkpoint': {
             'dir': 'checkpoints',
             'step': 1
@@ -575,7 +610,7 @@ def main():
     with open(config['outputfile'], 'w') as ans_file:
         for text in dataset_iterator(f'{path}/data/test1.de-en.de'):
             tokens = [2] + [de_vocab[word] if word in de_vocab else de_vocab['<unk>'] for word in text] + [3]
-            ans_file.write(' '.join(inference_loop_beam_search(model=model, tokenized_src=tokens, en_vocab=en_vocab)) + '\n')
+            ans_file.write(' '.join(inference_loop(model=model, tokenized_src=tokens, en_vocab=en_vocab)) + '\n')
 
 
 if __name__ == '__main__':

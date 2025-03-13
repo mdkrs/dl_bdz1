@@ -569,7 +569,7 @@ def main():
     print(type(val_bleu))
     print("train_loss")
     for x in train_loss:
-        print(type(x), x.)
+        print(type(x), x)
     print("train_bleu")
     for x in train_bleu:
         print(type(x), x)

@@ -405,11 +405,11 @@ def train_loop(num_epochs, model, train_loader, test_loader, train_loss_comp, te
         model.train()
         loss, bleu = run_epoch(train_loader, model, train_loss_comp)
         train_loss.append(loss.cpu().numpy().tolist())
-        train_bleu.append(bleu)
+        train_bleu.append(bleu.cpu().numpy().tolist())
         model.eval()
         loss, bleu = run_epoch(test_loader, model, test_loss_comp)
-        val_loss.append(loss)
-        val_bleu.append(bleu)
+        val_loss.append(loss.cpu().numpy().tolist())
+        val_bleu.append(bleu.cpu().numpy().tolist())
         print(f'train loss after {epoch}th epoch: {train_loss[-1]}')
         print(f'val loss after {epoch}th epoch: {val_loss[-1]}')
     
@@ -562,17 +562,6 @@ def main():
                train_loss_comp=LossBLEUCompute(model.generator, criterion, en_vocab.get_itos(), calc_bleu=False, opt=optimizer),
                test_loss_comp=LossBLEUCompute(model.generator, criterion, en_vocab.get_itos(), calc_bleu=False, opt=None), config=config)
     
-    print(type(config))
-    print(type(train_loss))
-    print(type(val_loss))
-    print(type(train_bleu))
-    print(type(val_bleu))
-    print("train_loss")
-    for x in train_loss:
-        print(type(x), x)
-    print("train_bleu")
-    for x in train_bleu:
-        print(type(x), x)
     create_next_file_with_data(config['logdir'], json.dumps(
         dict(
             config=config,

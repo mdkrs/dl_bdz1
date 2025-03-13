@@ -454,10 +454,9 @@ def create_next_file_with_data(directory, data):
     new_file_name = str(next_number)
     new_file_path = os.path.join(directory, new_file_name)
     
-    # Создаём новый файл и записываем в него данные
     with open(new_file_path, 'w') as new_file:
         new_file.write(data)
-    print(f"Logged in: {os.path.joi(directory, new_file_name)}")
+    print(f"Logged in: {os.path.join(directory, new_file_name)}")
 
 def main():
     config = {

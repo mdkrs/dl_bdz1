@@ -462,9 +462,9 @@ def main():
     config = {
         'model': {
             'num_layers': 3,
-            'embedding_dim': 512,
-            'feedforward_dim': 512,
-            'num_heads': 8,
+            'embedding_dim': 128,
+            'feedforward_dim': 128,
+            'num_heads': 3,
             'dropout': 0.1
         },
         'batch_size': 1024,
@@ -516,8 +516,6 @@ def main():
             config=config,
             train_loss=train_loss,
             val_loss=val_loss,
-            train_bleu=train_bleu,
-            val_bleu=val_bleu
         )
     ))
 

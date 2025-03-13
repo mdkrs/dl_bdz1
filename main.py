@@ -459,7 +459,7 @@ def beam_search(model, tokenized_src, en_vocab, max_length=90, beam_width=3):
     best_beam_tokens, _ = ans_beams[0]
     return best_beam_tokens[1:-1]  # Удаляем <bos> и <eos>
 
-def inference_loop_beam_search(model, tokenized_src, en_vocab, max_length=90, beam_width=5):
+def inference_loop_beam_search(model, tokenized_src, en_vocab, max_length=90, beam_width=3):
     translated_sentence = beam_search(model, tokenized_src, en_vocab, max_length, beam_width)
     en_reverse_vocab = en_vocab.get_itos()
     translated_sentence = [en_reverse_vocab[token] for token in translated_sentence]
@@ -576,7 +576,7 @@ def main():
         lenn = len(list(dataset_iterator(f'{path}/data/test1.de-en.de')))
         for text in tqdm(dataset_iterator(f'{path}/data/test1.de-en.de'), total=lenn):
             tokens = [2] + [de_vocab[word] if word in de_vocab else de_vocab['<unk>'] for word in text] + [3]
-            ans_file.write(' '.join(inference_loop(model=model, tokenized_src=tokens, en_vocab=en_vocab)) + '\n')
+            ans_file.write(' '.join(inference_loop_beam_search(model=model, tokenized_src=tokens, en_vocab=en_vocab)) + '\n')
     print("FINISHED")
 
 

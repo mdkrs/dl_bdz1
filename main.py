@@ -416,6 +416,7 @@ def train_loop(num_epochs, model, train_loader, test_loader, train_loss_comp, te
     return train_loss, val_loss, train_bleu, val_bleu
 
 
+@torch.no_grad()
 def inference_loop(model, tokenized_src, en_vocab, max_length=90):
     en_reverse_vocab = en_vocab.get_itos()
 
@@ -516,6 +517,12 @@ def main():
     print(type(val_loss))
     print(type(train_bleu))
     print(type(val_bleu))
+    print("train_loss")
+    for x in train_loss:
+        print(type(x))
+    print("train_bleu")
+    for x in train_bleu:
+        print(type(x))
     create_next_file_with_data(config['logdir'], json.dumps(
         dict(
             config=config,

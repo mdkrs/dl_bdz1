@@ -416,6 +416,117 @@ def train_loop(num_epochs, model, train_loader, test_loader, train_loss_comp, te
     return train_loss, val_loss, train_bleu, val_bleu
 
 
+def beam_search_extra(model, tokenized_src, en_vocab, max_length=90, beam_width=5):
+    """
+    Выполняет декодирование методом Beam Search для задачи машинного перевода.
+    
+    Аргументы:
+        model: модель перевода (например, Transformer)
+        tokenized_src: список токенов исходного предложения
+        en_vocab: словарь целевого языка (английского)
+        max_length: максимальная длина генерируемой последовательности
+        beam_width: количество лучей для рассмотрения
+    
+    Возвращает:
+        список токенов переведенного предложения (без BOS и EOS)
+    """
+    # Определяем устройство и специальные токены
+    device = next(model.parameters()).device
+    bos_idx = en_vocab["<bos>"]
+    eos_idx = en_vocab["<eos>"]
+    
+    # Переводим входные данные в тензоры
+    src = torch.tensor([tokenized_src], device=device)
+    
+    # Запускаем модель в режиме оценки
+    model.eval()
+    
+    # Получаем энкодер-память (выполняется один раз)
+    with torch.no_grad():
+        encoder_output = model.encode(src, None)
+    
+    # Инициализируем первую гипотезу с BOS токеном
+    hypotheses = [([bos_idx], 0.0)]  # (последовательность, логарифм вероятности)
+    completed_hypotheses = []
+    
+    # Основной цикл Beam Search
+    for step in range(max_length):
+        # Если все гипотезы завершены, выходим из цикла
+        if len(hypotheses) == 0:
+            break
+            
+        # Собираем все текущие гипотезы для батчевой обработки
+        all_candidates = []
+        
+        # Преобразуем все гипотезы в тензоры для батчевой обработки
+        batch_tokens = [torch.tensor([h[0]], device=device) for h in hypotheses]
+        batch_size = len(batch_tokens)
+        
+        # Батчевое декодирование
+        with torch.no_grad():
+            # Копируем память энкодера для каждой гипотезы в батче
+            memory = encoder_output.repeat(batch_size, 1, 1)
+            # Декодируем все гипотезы одновременно
+            decoder_output = model.decode(memory, None, torch.cat(batch_tokens, dim=0), None)
+            # Получаем логиты для следующего токена
+            logits = model.generator(decoder_output[:, -1])
+            # Преобразуем в вероятности
+            probs = torch.softmax(logits, dim=-1)
+            
+        # Обрабатываем каждую гипотезу
+        for idx, (seq, score) in enumerate(hypotheses):
+            # Если последний токен - EOS, добавляем в завершенные гипотезы
+            if seq[-1] == eos_idx:
+                completed_hypotheses.append((seq, score))
+                continue
+                
+            # Получаем top-k токенов для текущей гипотезы
+            hyp_probs = probs[idx]
+            top_probs, top_indices = torch.topk(hyp_probs, beam_width)
+            
+            # Создаем новые кандидаты
+            for prob, idx in zip(top_probs, top_indices):
+                new_score = score - torch.log(prob).item()  # Используем отрицательный логарифм
+                new_seq = seq + [idx.item()]
+                all_candidates.append((new_seq, new_score))
+        
+        # Сортируем всех кандидатов по возрастанию score (меньше = лучше)
+        all_candidates.sort(key=lambda x: x[1])
+        
+        # Обновляем гипотезы, сохраняя только лучшие beam_width
+        hypotheses = []
+        for seq, score in all_candidates:
+            if seq[-1] == eos_idx:
+                # Нормализуем по длине и добавляем в завершенные
+                norm_score = score / len(seq)**0.75  # Нормализация с альфа=0.75
+                completed_hypotheses.append((seq, norm_score))
+            else:
+                hypotheses.append((seq, score))
+                # Если достигли нужного количества гипотез, останавливаемся
+                if len(hypotheses) >= beam_width:
+                    break
+    
+    # Добавляем незавершенные гипотезы в список завершенных
+    for seq, score in hypotheses:
+        norm_score = score / len(seq)**0.75
+        completed_hypotheses.append((seq + [eos_idx], norm_score))
+    
+    # Если нет завершенных гипотез, возвращаем первую из незавершенных
+    if not completed_hypotheses:
+        return hypotheses[0][0][1:] if hypotheses else [bos_idx]
+    
+    # Сортируем по нормализованному счету и выбираем лучшую
+    completed_hypotheses.sort(key=lambda x: x[1])
+    best_seq = completed_hypotheses[0][0]
+    
+    # Удаляем BOS и EOS токены
+    result = best_seq[1:]
+    if result and result[-1] == eos_idx:
+        result = result[:-1]
+    
+    return result
+
+
 @torch.no_grad()
 def beam_search(model, tokenized_src, en_vocab, max_length=90, beam_width=5):
     assert beam_width > 0
@@ -459,7 +570,7 @@ def beam_search(model, tokenized_src, en_vocab, max_length=90, beam_width=5):
     return best_beam_tokens[1:-1]  # Удаляем <bos> и <eos>
 
 def inference_loop_beam_search(model, tokenized_src, en_vocab, max_length=90, beam_width=3):
-    translated_sentence = beam_search(model, tokenized_src, en_vocab, max_length, beam_width)
+    translated_sentence = beam_search_extra(model, tokenized_src, en_vocab, max_length, beam_width)
     en_reverse_vocab = en_vocab.get_itos()
     translated_sentence = [en_reverse_vocab[token] for token in translated_sentence]
     return translated_sentence
@@ -525,7 +636,7 @@ def main():
             'beta1': 0.9,
             'beta2': 0.98
         },
-        'epochs': 20,
+        'epochs': 1,
         'checkpoint': {
             'dir': 'checkpoints',
             'step': 1
@@ -575,7 +686,7 @@ def main():
         lenn = len(list(dataset_iterator(f'{path}/data/test1.de-en.de')))
         for text in tqdm(dataset_iterator(f'{path}/data/test1.de-en.de'), total=lenn):
             tokens = [2] + [de_vocab[word] if word in de_vocab else de_vocab['<unk>'] for word in text] + [3]
-            ans_file.write(' '.join(inference_loop(model=model, tokenized_src=tokens, en_vocab=en_vocab)) + '\n')
+            ans_file.write(' '.join(inference_loop_beam_search(model=model, tokenized_src=tokens, en_vocab=en_vocab)) + '\n')
     print("FINISHED")
 
 

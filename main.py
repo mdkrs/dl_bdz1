@@ -623,20 +623,20 @@ def main():
     config = {
         'model': {
             'num_layers': 3,
-            'embedding_dim': 512,
+            'embedding_dim': 128,
             'feedforward_dim': 512,
-            'num_heads': 8,
+            'num_heads': 4,
             'dropout': 0.1
         },
         'batch_size': 1024,
         'optimizer': {
             'factor': 1,
-            'warmup': 100,
+            'warmup': 400,
             'lr': 0.0001,
             'beta1': 0.9,
             'beta2': 0.98
         },
-        'epochs': 13,
+        'epochs': 20,
         'checkpoint': {
             'dir': 'checkpoints',
             'step': 1

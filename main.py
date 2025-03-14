@@ -631,7 +631,7 @@ def main():
         'batch_size': 1024,
         'optimizer': {
             'factor': 1,
-            'warmup': 0,
+            'warmup': 100,
             'lr': 0.0001,
             'beta1': 0.9,
             'beta2': 0.98

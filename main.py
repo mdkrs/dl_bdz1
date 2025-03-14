@@ -636,10 +636,13 @@ def main():
             'beta1': 0.9,
             'beta2': 0.98
         },
-        'epochs': 11,
+        'epochs': 13,
         'checkpoint': {
             'dir': 'checkpoints',
             'step': 1
+        },
+        'inference': {
+            'beam_width': 5,
         },
         'outputfile': 'output',
         'logdir': 'logs/',
@@ -686,7 +689,7 @@ def main():
         lenn = len(list(dataset_iterator(f'{path}/data/test1.de-en.de')))
         for text in tqdm(dataset_iterator(f'{path}/data/test1.de-en.de'), total=lenn):
             tokens = [2] + [de_vocab[word] if word in de_vocab else de_vocab['<unk>'] for word in text] + [3]
-            ans_file.write(' '.join(inference_loop_beam_search(model=model, tokenized_src=tokens, en_vocab=en_vocab)) + '\n')
+            ans_file.write(' '.join(inference_loop_beam_search(model=model, tokenized_src=tokens, en_vocab=en_vocab, beam_width=config['inference']['beam_width'])) + '\n')
     print("FINISHED")
 
 

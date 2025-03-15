@@ -623,7 +623,7 @@ def main():
     config = {
         'model': {
             'num_layers': 3,
-            'embedding_dim': 512,
+            'embedding_dim': 256,
             'feedforward_dim': 512,
             'num_heads': 8,
             'dropout': 0.1
@@ -636,13 +636,13 @@ def main():
             'beta1': 0.9,
             'beta2': 0.98
         },
-        'epochs': 30,
+        'epochs': 22,
         'checkpoint': {
             'dir': 'checkpoints',
             'step': 1
         },
         'inference': {
-            'beam_width': 5,
+            'beam_width': 3,
         },
         'outputfile': 'output',
         'logdir': 'logs/',

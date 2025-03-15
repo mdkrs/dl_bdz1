@@ -636,7 +636,7 @@ def main():
             'beta1': 0.9,
             'beta2': 0.98
         },
-        'epochs': 20,
+        'epochs': 30,
         'checkpoint': {
             'dir': 'checkpoints',
             'step': 1

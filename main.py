@@ -623,7 +623,7 @@ def main():
     config = {
         'model': {
             'num_layers': 3,
-            'embedding_dim': 256,
+            'embedding_dim': 512,
             'feedforward_dim': 512,
             'num_heads': 8,
             'dropout': 0.1

@@ -623,9 +623,9 @@ def main():
     config = {
         'model': {
             'num_layers': 3,
-            'embedding_dim': 128,
+            'embedding_dim': 512,
             'feedforward_dim': 512,
-            'num_heads': 4,
+            'num_heads': 8,
             'dropout': 0.1
         },
         'batch_size': 1024,
@@ -636,7 +636,7 @@ def main():
             'beta1': 0.9,
             'beta2': 0.98
         },
-        'epochs': 20,
+        'epochs': 30,
         'checkpoint': {
             'dir': 'checkpoints',
             'step': 1

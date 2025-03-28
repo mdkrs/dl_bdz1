@@ -285,9 +285,9 @@ def main():
     print("Device ", device)
 
     config = {
-        'n_epochs': 15,
+        'n_epochs': 10,
         'batch_size': 128,
-        'name': 'resnet34'
+        'name': 'resnet34_aug'
     }
 
     labels = pd.read_csv("bhw1/labels.csv")
@@ -298,8 +298,8 @@ def main():
     n_epochs = config['n_epochs']
 
     transform_train = transforms.Compose([
-        # transforms.RandomHorizontalFlip(p=0.3),
-        # transforms.RandomVerticalFlip(p=0.3),
+        transforms.RandomHorizontalFlip(p=0.3),
+        transforms.RandomVerticalFlip(p=0.3),
         # transforms.RandomApply(torch.nn.ModuleList([transforms.GaussianBlur(3)]), p=0.2),
         # transforms.RandomApply(torch.nn.ModuleList([transforms.RandomRotation((-15, 15))]), p=0.2),
         # transforms.RandomApply(torch.nn.ModuleList([transforms.ColorJitter(brightness=[0, 1], contrast=[0, 0.5])]), p=0.2),

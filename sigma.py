@@ -240,7 +240,7 @@ def train(model, optimizer, n_epochs, train_loader, val_loader, scheduler=None, 
             scheduler.step(np.mean(train_acc))
         if test_loader is not None and epoch % 3 == 2:
             print("SAVING TEST LABELS")
-            save_results(model, test_loader, test_size, filename='labels_test')
+            # save_results(model, test_loader, test_size, filename='labels_test')
 
     return train_loss_log, train_acc_log, val_loss_log, val_acc_log
 

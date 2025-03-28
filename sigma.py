@@ -325,7 +325,7 @@ def main():
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=np.sqrt(0.1), cooldown=0, patience=5, min_lr=0.5e-6)
 
     train_loader, val_loader, test_loader = my_train_val_test_split(train_size, val_size, test_size, transform_train, transform_test, batch_size, labels)
-    train_loss_log, train_acc_log, val_loss_log, val_acc_log = train(net, optimizer, 100, train_loader, val_loader, scheduler, test_loader, test_size)
+    train_loss_log, train_acc_log, val_loss_log, val_acc_log = train(net, optimizer, n_epochs, train_loader, val_loader, scheduler, test_loader, test_size)
 
     test_loss, test_acc = test(net, val_loader)
     print("VAL ACC: ", np.mean(test_acc))

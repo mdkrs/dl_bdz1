@@ -285,9 +285,9 @@ def main():
     print("Device ", device)
 
     config = {
-        'n_epochs': 20,
+        'n_epochs': 15,
         'batch_size': 128,
-        'name': 'resnet34'
+        'name': 'my'
     }
 
     labels = pd.read_csv("bhw1/labels.csv")

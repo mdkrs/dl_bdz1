@@ -287,7 +287,7 @@ def main():
     config = {
         'n_epochs': 20,
         'batch_size': 128,
-        'name': 'resnet50'
+        'name': 'resnet34'
     }
 
     labels = pd.read_csv("bhw1/labels.csv")
@@ -311,7 +311,7 @@ def main():
         transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))]
     )
 
-    net = resnet50()
+    net = resnet34()
     net = net.to(device)
 
     # lr_warmup_epochs = 5

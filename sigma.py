@@ -12,6 +12,8 @@ from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from torchvision.models import resnet50, resnet34
+import os
+import json
 
 
 class DLDataset(Dataset):
@@ -258,15 +260,41 @@ def save_results(model, test_loader, test_size, filename):
     ans.to_csv(f"{filename}.csv", index=False)
 
 
+def create_next_file_with_data(directory, data):
+    files = os.listdir(directory)
+    
+    max_number = -1
+    for file_name in files:
+        try:
+            number = int(file_name)
+            if number > max_number:
+                max_number = number
+        except ValueError:
+            continue
+    
+    next_number = max_number + 1
+    new_file_name = str(next_number)
+    new_file_path = os.path.join(directory, new_file_name)
+    
+    with open(new_file_path, 'w') as new_file:
+        new_file.write(data)
+    print(f"Logged in: {os.path.join(directory, new_file_name)}")
+
+
 def main():
     print("Device ", device)
+
+    config = {
+        'n_epochs': 1,
+        'batch_size': 128,
+    }
 
     labels = pd.read_csv("bhw1/labels.csv")
     train_size = 100000
     test_size = 10000
     val_size = 5000
-    batch_size = 1024
-    n_epochs = 60
+    batch_size = config['batch_size']
+    n_epochs = config['n_epochs']
 
     transform_train = transforms.Compose([
         # transforms.RandomHorizontalFlip(p=0.3),
@@ -301,6 +329,16 @@ def main():
 
     test_loss, test_acc = test(net, val_loader)
     print("VAL ACC: ", np.mean(test_acc))
+
+    create_next_file_with_data('fuck_logs', json.dumps(
+        dict(
+            config=config,
+            train_loss=train_loss_log,
+            val_loss=val_loss_log,
+            train_acc=train_acc_log,
+            val_acc=val_acc_log,
+        )
+    ))
 
     save_results(net, test_loader, test_size, filename='labels_test')
 

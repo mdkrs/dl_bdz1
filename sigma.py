@@ -285,7 +285,7 @@ def main():
     print("Device ", device)
 
     config = {
-        'n_epochs': 1,
+        'n_epochs': 20,
         'batch_size': 128,
     }
 

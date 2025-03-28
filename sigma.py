@@ -226,8 +226,8 @@ def train(model, optimizer, n_epochs, train_loader, val_loader, scheduler=None, 
         train_loss, train_acc = train_epoch(model, optimizer, train_loader)
         val_loss, val_acc = test(model, val_loader)
 
-        train_loss_log.extend(train_loss)
-        train_acc_log.extend(train_acc)
+        train_loss_log.append(np.mean(train_loss))
+        train_acc_log.append(np.mean(train_acc))
 
         val_loss_log.append(val_loss)
         val_acc_log.append(val_acc)
